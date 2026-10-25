@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام إدارة السيارات الجمركية</title>
+<style>
+:root {
+  --primary: #2563eb; --primary-dark: #1e40af;
+  --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --info: #0ea5e9;
+  --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --muted: #64748b;
+  --border: #e2e8f0; --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 10px 25px -5px rgba(0,0,0,.15);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+.topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow); }
+.logo { font-weight: 700; font-size: 18px; color: var(--primary-dark); }
+.topbar nav a { color: var(--muted); text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: .2s; }
+.topbar nav a:hover, .topbar nav a.active { background: #eff6ff; color: var(--primary); }
+
+.container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+.page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.page-title { font-size: 26px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--card); border-radius: var(--radius); padding: 18px; display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+.stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.stat-icon.blue { background: #dbeafe; } .stat-icon.orange { background: #ffedd5; }
+.stat-icon.green { background: #d1fae5; } .stat-icon.red { background: #fee2e2; }
+.stat-value { font-size: 24px; font-weight: 700; } .stat-label { font-size: 13px; color: var(--muted); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+.car-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; transition: .2s; display: flex; flex-direction: column; }
+.car-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.car-card-header { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border); }
+.car-avatar { width: 44px; height: 44px; background: #eff6ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.car-avatar.large { width: 64px; height: 64px; font-size: 32px; }
+.car-title { flex: 1; min-width: 0; }
+.car-title h3 { font-size: 16px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plate { display: inline-block; background: #f8fafc; border: 1px solid var(--border); padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--muted); font-family: monospace; }
+.car-meta { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; }
+.car-meta > div { display: flex; flex-direction: column; }
+.car-meta .label { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.car-meta span:not(.label) { font-size: 13px; font-weight: 500; }
+.car-card-footer { padding: 12px 16px; background: #f8fafc; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.car-card-footer .total { font-size: 12px; color: var(--muted); }
+.car-card-footer .total strong { color: var(--text); font-size: 14px; }
+
+.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.badge.success { background: #d1fae5; color: #065f46; }
+.badge.warning { background: #fef3c7; color: #92400e; }
+.badge.danger { background: #fee2e2; color: #991b1b; }
+.badge.info { background: #dbeafe; color: #1e40af; }
+.badge.muted { background: #f1f5f9; color: #475569; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; border: 1px solid transparent; cursor: pointer; text-decoration: none; transition: .2s; font-family: inherit; }
+.btn-primary { background: var(--primary); color: #fff; } .btn-primary:hover { background: var(--primary-dark); }
+.btn-ghost { background: #fff; border-color: var(--border); color: var(--text); } .btn-ghost:hover { background: #f8fafc; }
+.btn-danger { background: var(--danger); color: #fff; } .btn-danger:hover { background: #b91c1c; }
+.btn-icon { background: transparent; border: 1px solid var(--border); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: .2s; font-size: 14px; }
+.btn-icon:hover { background: #f1f5f9; }
+.btn-icon.danger:hover { background: #fee2e2; border-color: #fca5a5; }
+.link { color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer; }
+.link:hover { text-decoration: underline; }
+
+.car-header { background: #fff; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 16px; }
+.car-header-main { display: flex; align-items: center; gap: 16px; }
+.car-header h1 { font-size: 22px; margin-bottom: 6px; }
+.car-header-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.car-header-actions { display: flex; gap: 8px; }
+
+.tabs-nav { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 18px; background: #fff; padding: 8px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); scrollbar-width: thin; }
+.tab-btn { padding: 10px 16px; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--muted); border-radius: 8px; white-space: nowrap; transition: .2s; }
+.tab-btn:hover { background: #f8fafc; color: var(--text); }
+.tab-btn.active { background: var(--primary); color: #fff; }
+
+.section { background: #fff; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 16px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+.section-header h2 { font-size: 18px; }
+
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.field { display: flex; flex-direction: column; padding: 10px 14px; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border); }
+.field-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.field-value { font-size: 14px; font-weight: 600; word-break: break-word; }
+.mono { font-family: 'Consolas', monospace; letter-spacing: .5px; }
+
+.table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+table th { background: #f8fafc; padding: 12px; text-align: right; font-weight: 600; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+table td { padding: 12px; border-bottom: 1px solid var(--border); }
+table tbody tr:last-child td { border-bottom: none; }
+table tbody tr:hover { background: #f8fafc; }
+.actions { display: flex; gap: 4px; }
+
+.empty-state { padding: 40px; text-align: center; color: var(--muted); background: #f8fafc; border-radius: 8px; border: 1px dashed var(--border); }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; animation: fadeIn .2s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal { background: #fff; border-radius: var(--radius); width: 100%; max-width: 700px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); animation: slideUp .2s; }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 18px; }
+.modal-close { background: transparent; border: none; font-size: 20px; cursor: pointer; color: var(--muted); width: 32px; height: 32px; border-radius: 8px; transition: .2s; }
+.modal-close:hover { background: #f1f5f9; }
+.modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid .full { grid-column: 1 / -1; }
+.form-group { display: flex; flex-direction: column; }
+.form-group label { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.form-group input, .form-group select, .form-group textarea { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; background: #fff; transition: .2s; color: var(--text); }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+.form-group textarea { resize: vertical; min-height: 70px; }
+.file-preview { margin-top: 8px; padding: 8px 12px; background: #f8fafc; border-radius: 6px; font-size: 13px; }
+
+.photos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.photo-item { position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); aspect-ratio: 1; cursor: pointer; }
+.photo-item img { width: 100%; height: 100%; object-fit: cover; }
+.photo-item .del { position: absolute; top: 4px; left: 4px; background: rgba(239,68,68,.9); color: #fff; border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; }
+
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: #0f172a; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; opacity: 0; transition: .3s; z-index: 200; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 640px) {
+  .container { padding: 14px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .car-header { flex-direction: column; align-items: stretch; }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">🚗 نظام إدارة السيارات</div>
+  <nav><a href="#/" id="navHome">الرئيسية</a></nav>
+</header>
+
+<main class="container" id="app"></main>
+
+<script>
+/* ============================================================
+   DATA LAYER
+============================================================ */
+const STORAGE_KEY = 'cars_customs_system_v1';
+
+const DEFAULT_CARS = [
+  {
+    id: 1, name: 'تويوتا كورولا', brand: 'تويوتا', model: 'كورولا', year: 2023, color: 'أبيض',
+    plateNumber: 'أ ب ج 1234', chassisNumber: 'JT2BG22K7N0123456', engineNumber: '2ZR-1234567',
+    status: 'قيد التخليص', mileage: 0, fuelType: 'بنزين', transmission: 'أوتوماتيك',
+    engineCapacity: '1800 cc', countryOfOrigin: 'اليابان', purchaseDate: '2023-06-15', purchasePrice: 850000,
+    customs: { declarationNumber: 'CUS-2023-8821', customsOffice: 'مصلحة الجمارك - الإسكندرية', arrivalDate: '2023-07-20', clearanceDate: '', dutiesAmount: 320000, dutiesStatus: 'غير مدفوعة', port: 'ميناء الإسكندرية', manifestNumber: 'MAN-552-2023', broker: 'شركة النيل للتخليص', notes: 'بانتظار تقييم السعر' },
+    licenses: [
+      { id: 'l1a', type: 'وثيقة تأمين', number: 'INS-2023-441', issueDate: '2023-07-25', expiryDate: '2024-07-25', notes: '', file: null },
+      { id: 'l1b', type: 'فحص فني', number: 'VET-2023-100', issueDate: '2023-07-26', expiryDate: '2024-07-26', notes: '', file: null }
+    ],
+    insurance: { company: 'مصر للتأمين', policyNumber: 'INS-2023-441', startDate: '2023-07-25', endDate: '2024-07-25', type: 'تأمين شامل', premium: 18000, notes: '' },
+    maintenance: [],
+    expenses: [
+      { id: 'e1a', date: '2023-07-22', description: 'أرضية الميناء', amount: 3500, category: 'رسوم' },
+      { id: 'e1b', date: '2023-07-23', description: 'أتعاب المخلص', amount: 8000, category: 'رسوم' }
+    ],
+    documents: [], photos: [], notes: 'العربية داخل الميناء بانتظار سداد الرسوم الجمركية'
+  },
+  {
+    id: 2, name: 'هيونداي إلنترا', brand: 'هيونداي', model: 'إلنترا', year: 2022, color: 'رمادي',
+    plateNumber: 'د هـ و 5678', chassisNumber: 'KMHD35LH5NU123456', engineNumber: 'G4NB-7654321',
+    status: 'مخالصة جمركياً', mileage: 18000, fuelType: 'بنزين', transmission: 'أوتوماتيك',
+    engineCapacity: '1600 cc', countryOfOrigin: 'كوريا الجنوبية', purchaseDate: '2022-04-10', purchasePrice: 720000,
+    customs: { declarationNumber: 'CUS-2022-4412', customsOffice: 'مصلحة الجمارك - القاهرة', arrivalDate: '2022-05-12', clearanceDate: '2022-06-01', dutiesAmount: 245000, dutiesStatus: 'مدفوعة', port: 'ميناء الدخيلة', manifestNumber: 'MAN-221-2022', broker: 'مكتب السلام للتخليص', notes: 'تم السداد كامل' },
+    licenses: [
+      { id: 'l2a', type: 'رخصة تسيير', number: 'PRM-2022-7781', issueDate: '2022-06-05', expiryDate: '2025-06-05', notes: '', file: null },
+      { id: 'l2b', type: 'وثيقة تأمين', number: 'INS-2022-998', issueDate: '2022-06-05', expiryDate: '2025-06-05', notes: '', file: null }
+    ],
+    insurance: { company: 'الأهلي للتأمين', policyNumber: 'INS-2022-998', startDate: '2022-06-05', endDate: '2025-06-05', type: 'تأمين إجباري', premium: 12000, notes: '' },
+    maintenance: [ { id: 'm2a', date: '2023-03-15', description: 'تغيير زيت وفلاتر', cost: 1200, shop: 'مركز هيونداي', odometer: 15000, notes: '' } ],
+    expenses: [
+      { id: 'e2a', date: '2022-06-05', description: 'رخصة وترخيص', amount: 4500, category: 'رسوم' },
+      { id: 'e2b', date: '2023-03-15', description: 'صيانة دورية', amount: 1200, category: 'صيانة' }
+    ],
+    documents: [], photos: [], notes: 'العربية مرخصة وسارية كل الأوراق'
+  },
+  {
+    id: 3, name: 'كيا سبورتاج', brand: 'كيا', model: 'سبورتاج', year: 2021, color: 'أسود',
+    plateNumber: 'س ش ص 9012', chassisNumber: 'KNAPB81ABM7123456', engineNumber: 'G4NA-9988776',
+    status: 'مسجلة', mileage: 42000, fuelType: 'بنزين', transmission: 'أوتوماتيك',
+    engineCapacity: '2000 cc', countryOfOrigin: 'كوريا الجنوبية', purchaseDate: '2021-02-20', purchasePrice: 950000,
+    customs: { declarationNumber: 'CUS-2021-1103', customsOffice: 'مصلحة الجمارك - بورسعيد', arrivalDate: '2021-03-01', clearanceDate: '2021-03-25', dutiesAmount: 380000, dutiesStatus: 'مدفوعة', port: 'ميناء بورسعيد', manifestNumber: 'MAN-098-2021', broker: 'التوفيق للاستيراد', notes: '' },
+    licenses: [
+      { id: 'l3a', type: 'رخصة تسيير', number: 'PRM-2021-3321', issueDate: '2021-04-01', expiryDate: '2024-04-01', notes: 'تحتاج تجديد', file: null },
+      { id: 'l3b', type: 'رخصة قيادة', number: 'DRV-7788', issueDate: '2021-01-01', expiryDate: '2026-01-01', notes: '', file: null },
+      { id: 'l3c', type: 'فحص فني', number: 'VET-2021-556', issueDate: '2021-04-01', expiryDate: '2024-04-01', notes: '', file: null }
+    ],
+    insurance: { company: 'مصر للتأمين', policyNumber: 'INS-2021-1122', startDate: '2021-04-01', endDate: '2024-04-01', type: 'تأمين شامل', premium: 22000, notes: '' },
+    maintenance: [
+      { id: 'm3a', date: '2022-05-10', description: 'تغيير إطارات', cost: 6500, shop: 'بريدجستون', odometer: 30000, notes: '' },
+      { id: 'm3b', date: '2023-01-20', description: 'صيانة شاملة', cost: 2800, shop: 'مركز كيا', odometer: 38000, notes: '' }
+    ],
+    expenses: [
+      { id: 'e3a', date: '2022-05-10', description: 'إطارات', amount: 6500, category: 'قطع غيار' },
+      { id: 'e3b', date: '2023-01-20', description: 'صيانة', amount: 2800, category: 'صيانة' }
+    ],
+    documents: [], photos: [], notes: 'رخصة التسيير تحتاج تجديد قريبًا'
+  },
+  {
+    id: 4, name: 'نيسان صني', brand: 'نيسان', model: 'صني', year: 2023, color: 'فضي',
+    plateNumber: 'ط ع ف 3456', chassisNumber: '3N1AB7AP5KY123456', engineNumber: 'HR15-4455667',
+    status: 'قيد التخليص', mileage: 0, fuelType: 'بنزين', transmission: 'أوتوماتيك',
+    engineCapacity: '1500 cc', countryOfOrigin: 'المكسيك', purchaseDate: '2023-08-05', purchasePrice: 620000,
+    customs: { declarationNumber: 'CUS-2023-9902', customsOffice: 'مصلحة الجمارك - السويس', arrivalDate: '2023-09-01', clearanceDate: '', dutiesAmount: 210000, dutiesStatus: 'جزئية', port: 'ميناء السويس', manifestNumber: 'MAN-671-2023', broker: 'شركة السويس للتخليص', notes: 'دفعة مقدمة 100 ألف' },
+    licenses: [],
+    insurance: { company: '', policyNumber: '', startDate: '', endDate: '', type: '', premium: 0, notes: '' },
+    maintenance: [],
+    expenses: [ { id: 'e4a', date: '2023-09-05', description: 'دفعة جمركية مقدمة', amount: 100000, category: 'رسوم' } ],
+    documents: [], photos: [], notes: 'بانتظار سداد باقي الرسوم الجمركية'
+  },
+  {
+    id: 5, name: 'شيفروليه أوبترا', brand: 'شيفروليه', model: 'أوبترا', year: 2022, color: 'أحمر',
+    plateNumber: 'ق ر س 7890', chassisNumber: 'KL1TJ5265NB123456', engineNumber: 'F16D4-5566778',
+    status: 'مخالصة جمركياً', mileage: 12000, fuelType: 'بنزين', transmission: 'أوتوماتيك',
+    engineCapacity: '1600 cc', countryOfOrigin: 'كوريا الجنوبية', purchaseDate: '2022-10-10', purchasePrice: 580000,
+    customs: { declarationNumber: 'CUS-2022-7788', customsOffice: 'مصلحة الجمارك - الإسكندرية', arrivalDate: '2022-11-01', clearanceDate: '2022-12-10', dutiesAmount: 195000, dutiesStatus: 'مدفوعة', port: 'ميناء الإسكندرية', manifestNumber: 'MAN-455-2022', broker: 'شركة النيل للتخليص', notes: 'مخالصة نهائية' },
+    licenses: [
+      { id: 'l5a', type: 'رخصة تسيير', number: 'PRM-2022-9988', issueDate: '2022-12-15', expiryDate: '2025-12-15', notes: '', file: null },
+      { id: 'l5b', type: 'وثيقة تأمين', number: 'INS-2022-7766', issueDate: '2022-12-15', expiryDate: '2025-12-15', notes: '', file: null }
+    ],
+    insurance: { company: 'أليانز', policyNumber: 'INS-2022-7766', startDate: '2022-12-15', endDate: '2025-12-15', type: 'تأمين شامل', premium: 15000, notes: '' },
+    maintenance: [],
+    expenses: [ { id: 'e5a', date: '2022-12-15', description: 'رخصة وترخيص', amount: 3800, category: 'رسوم' } ],
+    documents: [], photos: [], notes: ''
+  }
+];
+
+function loadData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CARS));
+    return JSON.parse(JSON.stringify(DEFAULT_CARS));
+  }
+  try { return JSON.parse(raw); } catch { return JSON.parse(JSON.stringify(DEFAULT_CARS)); }
+}
+function saveData(d) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+  catch (e) { alert(e.name === 'QuotaExceededError' ? 'مساحة التخزين ممتلئة! احذف بعض المرفقات الكبيرة.' : 'خطأ في الحفظ'); }
+}
+function getCarById(id) { return loadData().find(c => c.id === Number(id)); }
+function updateCar(car) {
+  const cars = loadData();
+  const i = cars.findIndex(c => c.id === car.id);
+  if (i >= 0) cars[i] = car;
+  saveData(cars);
+}
+function deleteCarById(id) {
+  saveData(loadData().filter(c => c.id !== Number(id)));
+}
+
+/* ============================================================
+   UTILITIES
+============================================================ */
+const $ = s => document.querySelector(s);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+function formatDate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('ar-EG'); } catch { return d; }
+}
+function formatCurrency(n) {
+  if (n === null || n === undefined || n === '') return '0 ج.م';
+  return Number(n).toLocaleString('ar-EG') + ' ج.م';
+}
+function daysUntil(d) { return d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null; }
+function licenseStatus(exp) {
+  const d = daysUntil(exp);
+  if (d === null) return { label: 'غير محدد', cls: 'muted' };
+  if (d < 0) return { label: `منتهية (${Math.abs(d)} يوم)`, cls: 'danger' };
+  if (d <= 30) return { label: `تنتهي خلال ${d} يوم`, cls: 'warning' };
+  return { label: 'سارية', cls: 'success' };
+}
+function statusClass(s) {
+  return { 'قيد التخليص': 'warning', 'مخالصة جمركياً': 'info', 'مسجلة': 'success', 'مباعة': 'muted' }[s] || 'muted';
+}
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2200);
+}
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    if (file.size > 1.5 * 1024 * 1024) { reject(new Error('الملف أكبر من 1.5 ميجا — اضغطه أو اختر ملف أصغر')); return; }
+    const r = new FileReader();
+    r.onload = () => resolve({ name: file.name, data: r.result, type: file.type });
+    r.onerror = () => reject(new Error('خطأ في قراءة الملف'));
+    r.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
+   MODAL
+============================================================ */
+function openModal(title, bodyHtml, onSave) {
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-overlay';
+  wrap.innerHTML = `
+    <div class="modal">
+      <div class="modal-header"><h3>${title}</h3><button class="modal-close" type="button">✕</button></div>
+      <form class="modal-body">${bodyHtml}</form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost modal-cancel">إلغاء</button>
+        <button type="button" class="btn btn-primary modal-save">💾 حفظ</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  wrap.querySelector('.modal-close').onclick = close;
+  wrap.querySelector('.modal-cancel').onclick = close;
+  wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
+  const form = wrap.querySelector('form');
+  form.addEventListener('submit', e => e.preventDefault());
+  wrap.querySelector('.modal-save').onclick = async () => {
+    const data = Object.fromEntries(new FormData(form).entries());
+    const files = {};
+    for (const inp of form.querySelectorAll('input[type="file"]')) {
+      if (inp.files[0]) {
+        try { files[inp.name] = await readFileAsBase64(inp.files[0]); }
+        catch (err) { alert(err.message); return; }
+      }
+    }
+    try { await onSave(data, files); close(); }
+    catch (err) { alert(err.message); }
+  };
+}
+
+function inputField(label, name, value, type = 'text') {
+  return `<div class="form-group"><label>${label}</label><input type="${type}" name="${name}" value="${esc(value ?? '')}"></div>`;
+}
+function selectField(label, name, value, opts) {
+  return `<div class="form-group"><label>${label}</label><select name="${name}">
+    ${opts.map(o => `<option value="${esc(o)}" ${o === value ? 'selected' : ''}>${esc(o || '—')}</option>`).join('')}
+  </select></div>`;
+}
+function textareaField(label, name, value, rows = 3, full = false) {
+  return `<div class="form-group ${full ? 'full' : ''}"><label>${label}</label><textarea name="${name}" rows="${rows}">${esc(value ?? '')}</textarea></div>`;
+}
+function field(label, value, mono = false) {
+  return `<div class="field"><span class="field-label">${label}</span><span class="field-value ${mono ? 'mono' : ''}">${value || '—'}</span></div>`;
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+let currentCar = null;
+let currentTab = 'general';
+
+const TABS = [
+  { id: 'general', label: '📋 البيانات العامة' },
+  { id: 'customs', label: '🛃 بيانات الجمارك' },
+  { id: 'licenses', label: '📄 الرخص' },
+  { id: 'insurance', label: '🛡️ التأمين' },
+  { id: 'maintenance', label: '🔧 الصيانة' },
+  { id: 'expenses', label: '💰 المصاريف' },
+  { id: 'documents', label: '📁 المستندات' },
+  { id: 'photos', label: '📸 الصور' },
+  { id: 'notes', label: '📝 ملاحظات' }
+];
+
+/* ============================================================
+   ROUTER
+============================================================ */
+function router() {
+  const hash = location.hash.slice(1) || '/';
+  if (hash.startsWith('/car/')) {
+    const id = hash.split('/')[2];
+    renderCarPage(id);
+  } else {
+    renderDashboard();
+  }
+}
+window.addEventListener('hashchange', router);
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+function renderDashboard() {
+  currentCar = null;
+  document.title = 'نظام إدارة السيارات الجمركية';
+  const cars = loadData();
+  $('#app').innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">لوحة التحكم</h1>
+      <button class="btn btn-primary" onclick="addNewCar()">➕ إضافة سيارة</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="grid" id="carsGrid"></div>`;
+  renderStats(cars);
+  renderCarsGrid(cars);
+}
+
+function renderStats(cars) {
+  const total = cars.length;
+  const pending = cars.filter(c => c.status === 'قيد التخليص').length;
+  const done = cars.filter(c => c.status === 'مخالصة جمركياً' || c.status === 'مسجلة').length;
+  let expiring = 0;
+  cars.forEach(c => (c.licenses || []).forEach(l => {
+    const d = daysUntil(l.expiryDate);
+    if (d !== null && d >= 0 && d <= 30) expiring++;
+  }));
+  $('#stats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon blue">🚗</div><div><div class="stat-value">${total}</div><div class="stat-label">إجمالي السيارات</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange">⏳</div><div><div class="stat-value">${pending}</div><div class="stat-label">قيد التخليص</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${done}</div><div class="stat-label">مخالصة / مسجلة</div></div></div>
+    <div class="stat-card"><div class="stat-icon red">⚠️</div><div><div class="stat-value">${expiring}</div><div class="stat-label">رخص تنتهي خلال 30 يوم</div></div></div>`;
+}
+
+function renderCarsGrid(cars) {
+  const grid = $('#carsGrid');
+  if (!cars.length) { grid.innerHTML = '<div class="empty-state">لا توجد سيارات — اضغط "إضافة سيارة"</div>'; return; }
+  grid.innerHTML = cars.map(car => {
+    const licenses = car.licenses || [];
+    const valid = licenses.filter(l => (daysUntil(l.expiryDate) ?? -1) >= 0).length;
+    const totalExp = (car.expenses || []).reduce((s, e) => s + (Number(e.amount) || 0), 0)
+                   + (car.maintenance || []).reduce((s, m) => s + (Number(m.cost) || 0), 0);
+    return `
+      <div class="car-card">
+        <div class="car-card-header">
+          <div class="car-avatar">🚘</div>
+          <div class="car-title"><h3>${esc(car.name)}</h3><span class="plate">${esc(car.plateNumber || '—')}</span></div>
+          <span class="badge ${statusClass(car.status)}">${esc(car.status)}</span>
+        </div>
+        <div class="car-meta">
+          <div><span class="label">الماركة والموديل</span><span>${esc(car.brand)} - ${esc(car.model)}</span></div>
+          <div><span class="label">السنة</span><span>${car.year || '—'}</span></div>
+          <div><span class="label">اللون</span><span>${esc(car.color || '—')}</span></div>
+          <div><span class="label">الرخص السارية</span><span>${valid} / ${licenses.length}</span></div>
+        </div>
+        <div class="car-card-footer">
+          <div class="total">إجمالي المصاريف: <strong>${formatCurrency(totalExp)}</strong></div>
+          <a href="#/car/${car.id}" class="btn btn-primary">فتح الملف ←</a>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function addNewCar() {
+  const cars = loadData();
+  const newCar = {
+    id: Date.now(), name: 'سيارة جديدة', brand: '', model: '', year: new Date().getFullYear(), color: '',
+    plateNumber: '', chassisNumber: '', engineNumber: '', status: 'قيد التخليص',
+    mileage: 0, fuelType: 'بنزين', transmission: 'أوتوماتيك', engineCapacity: '', countryOfOrigin: '',
+    purchaseDate: '', purchasePrice: 0,
+    customs: { declarationNumber: '', customsOffice: '', arrivalDate: '', clearanceDate: '', dutiesAmount: 0, dutiesStatus: 'غير مدفوعة', port: '', manifestNumber: '', broker: '', notes: '' },
+    licenses: [], insurance: { company: '', policyNumber: '', startDate: '', endDate: '', type: '', premium: 0, notes: '' },
+    maintenance: [], expenses: [], documents: [], photos: [], notes: ''
+  };
+  cars.push(newCar); saveData(cars);
+  location.hash = `#/car/${newCar.id}`;
+}
+
+/* ============================================================
+   CAR PAGE
+============================================================ */
+function renderCarPage(id) {
+  currentCar = getCarById(id);
+  if (!currentCar) {
+    $('#app').innerHTML = '<div class="empty-state">السيارة غير موجودة — <a href="#/" class="link">رجوع للرئيسية</a></div>';
+    return;
+  }
+  document.title = `${currentCar.name} - ${currentCar.plateNumber}`;
+  const c = currentCar;
+  $('#app').innerHTML = `
+    <div class="car-header">
+      <div class="car-header-main">
+        <div class="car-avatar large">🚘</div>
+        <div>
+          <h1>${esc(c.name)}</h1>
+          <div class="car-header-badges">
+            <span class="plate">${esc(c.plateNumber || '—')}</span>
+            <span class="badge ${statusClass(c.status)}">${esc(c.status)}</span>
+            <span class="badge info">${c.year} - ${esc(c.brand)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="car-header-actions">
+        <a href="#/" class="btn btn-ghost">← رجوع</a>
+        <button class="btn btn-danger" onclick="handleDeleteCar()">🗑️ حذف</button>
+      </div>
+    </div>
+    <div class="tabs-nav">
+      ${TABS.map(t => `<button class="tab-btn ${t.id === currentTab ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
+    </div>
+    <div id="tabContent"></div>`;
+  document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => {
+    currentTab = b.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('active', x === b));
+    renderTab();
+  });
+  renderTab();
+}
+
+function renderTab() {
+  const el = $('#tabContent');
+  if (!el) return;
+  const map = {
+    general: renderGeneralTab, customs: renderCustomsTab, licenses: renderLicensesTab,
+    insurance: renderInsuranceTab, maintenance: renderMaintenanceTab, expenses: renderExpensesTab,
+    documents: renderDocumentsTab, photos: renderPhotosTab, notes: renderNotesTab
+  };
+  el.innerHTML = (map[currentTab] || renderGeneralTab)();
+}
+
+function handleDeleteCar() {
+  if (!confirm(`هل تريد حذف "${currentCar.name}" نهائيًا؟`)) return;
+  deleteCarById(currentCar.id);
+  location.hash = '#/';
+}
+
+/* ---- General Tab ---- */
+function renderGeneralTab() {
+  const c = currentCar;
+  return `<div class="section">
+    <div class="section-header"><h2>البيانات العامة</h2><button class="btn btn-primary" onclick="openGeneralModal()">✏️ تعديل</button></div>
+    <div class="grid-2">
+      ${field('اسم السيارة', esc(c.name))}
+      ${field('الماركة', esc(c.brand))}
+      ${field('الموديل', esc(c.model))}
+      ${field('سنة الصنع', c.year)}
+      ${field('اللون', esc(c.color))}
+      ${field('رقم اللوحة', esc(c.plateNumber))}
+      ${field('رقم الشاسيه', esc(c.chassisNumber), true)}
+      ${field('رقم الموتور', esc(c.engineNumber), true)}
+      ${field('العداد (كم)', c.mileage)}
+      ${field('نوع الوقود', esc(c.fuelType))}
+      ${field('ناقل الحركة', esc(c.transmission))}
+      ${field('سعة المحرك', esc(c.engineCapacity))}
+      ${field('بلد المنشأ', esc(c.countryOfOrigin))}
+      ${field('تاريخ الشراء', formatDate(c.purchaseDate))}
+      ${field('سعر الشراء', formatCurrency(c.purchasePrice))}
+      ${field('الحالة', `<span class="badge ${statusClass(c.status)}">${esc(c.status)}</span>`)}
+    </div>
+  </div>`;
+}
+
+function openGeneralModal() {
+  const c = currentCar;
+  openModal('تعديل البيانات العامة', `<div class="form-grid">
+    ${inputField('اسم السيارة', 'name', c.name)}
+    ${inputField('الماركة', 'brand', c.brand)}
+    ${inputField('الموديل', 'model', c.model)}
+    ${inputField('سنة الصنع', 'year', c.year, 'number')}
+    ${inputField('اللون', 'color', c.color)}
+    ${inputField('رقم اللوحة', 'plateNumber', c.plateNumber)}
+    ${inputField('رقم الشاسيه', 'chassisNumber', c.chassisNumber)}
+    ${inputField('رقم الموتور', 'engineNumber', c.engineNumber)}
+    ${inputField('العداد (كم)', 'mileage', c.mileage, 'number')}
+    ${selectField('نوع الوقود', 'fuelType', c.fuelType, ['بنزين', 'ديزل', 'كهربائي', 'هايبرد', 'غاز'])}
+    ${selectField('ناقل الحركة', 'transmission', c.transmission, ['أوتوماتيك', 'مانيوال'])}
+    ${inputField('سعة المحرك', 'engineCapacity', c.engineCapacity)}
+    ${inputField('بلد المنشأ', 'countryOfOrigin', c.countryOfOrigin)}
+    ${inputField('تاريخ الشراء', 'purchaseDate', c.purchaseDate, 'date')}
+    ${inputField('سعر الشراء', 'purchasePrice', c.purchasePrice, 'number')}
+    ${selectField('الحالة', 'status', c.status, ['قيد التخليص', 'مخالصة جمركياً', 'مسجلة', 'مباعة'])}
+  </div>`, (data) => {
+    Object.assign(currentCar, {
+      ...data,
+      year: Number(data.year) || data.year,
+      mileage: Number(data.mileage) || 0,
+      purchasePrice: Number(data.purchasePrice) || 0
+    });
+    updateCar(currentCar); renderCarPage(currentCar.id); toast('تم الحفظ بنجاح');
+  });
+}
+
+/* ---- Customs Tab ---- */
+function renderCustomsTab() {
+  const c = currentCar.customs || {};
+  const statusCls = c.dutiesStatus === 'مدفوعة' ? 'success' : c.dutiesStatus === 'جزئية' ? 'warning' : 'danger';
+  return `<div class="section">
+    <div class="section-header"><h2>بيانات الجمارك</h2><button class="btn btn-primary" onclick="openCustomsModal()">✏️ تعديل</button></div>
+    <div class="grid-2">
+      ${field('رقم البيان الجمركي', esc(c.declarationNumber), true)}
+      ${field('المكتب الجمركي', esc(c.customsOffice))}
+      ${field('تاريخ الوصول', formatDate(c.arrivalDate))}
+      ${field('تاريخ التخليص', formatDate(c.clearanceDate))}
+      ${field('قيمة الرسوم', formatCurrency(c.dutiesAmount))}
+      ${field('حالة السداد', `<span class="badge ${statusCls}">${esc(c.dutiesStatus)}</span>`)}
+      ${field('الميناء', esc(c.port))}
+      ${field('رقم المانيفست', esc(c.manifestNumber), true)}
+      ${field('المخلص الجمركي', esc(c.broker))}
+      ${field('ملاحظات', esc(c.notes))}
+    </div>
+  </div>`;
+}
+
+function openCustomsModal() {
+  const c = currentCar.customs || {};
+  openModal('تعديل بيانات الجمارك', `<div class="form-grid">
+    ${inputField('رقم البيان الجمركي', 'declarationNumber', c.declarationNumber)}
+    ${inputField('المكتب الجمركي', 'customsOffice', c.customsOffice)}
+    ${inputField('تاريخ الوصول', 'arrivalDate', c.arrivalDate, 'date')}
+    ${inputField('تاريخ التخليص', 'clearanceDate', c.clearanceDate, 'date')}
+    ${inputField('قيمة الرسوم', 'dutiesAmount', c.dutiesAmount, 'number')}
+    ${selectField('حالة السداد', 'dutiesStatus', c.dutiesStatus, ['غير مدفوعة', 'جزئية', 'مدفوعة'])}
+    ${inputField('الميناء', 'port', c.port)}
+    ${inputField('رقم المانيفست', 'manifestNumber', c.manifestNumber)}
+    ${inputField('المخلص الجمركي', 'broker', c.broker)}
+    ${textareaField('ملاحظات', 'notes', c.notes, 3, true)}
+  </div>`, (data) => {
+    currentCar.customs = { ...data, dutiesAmount: Number(data.dutiesAmount) || 0 };
+    updateCar(currentCar); renderTab(); toast('تم الحفظ');
+  });
+}
+
+/* ---- Licenses Tab ---- */
+function renderLicensesTab() {
+  const list = currentCar.licenses || [];
+  return `<div class="section">
+    <div class="section-header"><h2>الرخص (${list.length})</h2><button class="btn btn-primary" onclick="openLicenseModal()">➕ إضافة رخصة</button></div>
+    ${list.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>النوع</th><th>الرقم</th><th>الإصدار</th><th>الانتهاء</th><th>الحالة</th><th>المرفق</th><th>إجراءات</th></tr></thead>
+      <tbody>${list.map(l => {
+        const st = licenseStatus(l.expiryDate);
+        return `<tr>
+          <td>${esc(l.type)}</td>
+          <td class="mono">${esc(l.number || '—')}</td>
+          <td>${formatDate(l.issueDate)}</td>
+          <td>${formatDate(l.expiryDate)}</td>
+          <td><span class="badge ${st.cls}">${st.label}</span></td>
+          <td>${l.file ? `<a class="link" onclick="previewFile('licenses','${l.id}')">📎 عرض</a>` : '—'}</td>
+          <td class="actions">
+            <button class="btn-icon" onclick="openLicenseModal('${l.id}')">✏️</button>
+            <button class="btn-icon danger" onclick="deleteItem('licenses','${l.id}')">🗑️</button>
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>` : '<div class="empty-state">لا توجد رخص مسجلة بعد</div>'}
+  </div>`;
+}
+
+function openLicenseModal(id) {
+  const existing = id ? currentCar.licenses.find(l => l.id === id) : null;
+  const l = existing || { type: 'رخصة تسيير', number: '', issueDate: '', expiryDate: '', notes: '', file: null };
+  openModal(existing ? 'تعديل رخصة' : 'إضافة رخصة', `<div class="form-grid">
+    ${selectField('نوع الرخصة', 'type', l.type, ['رخصة تسيير', 'رخصة قيادة', 'وثيقة تأمين', 'فحص فني', 'براءة ذمة جمركية', 'أخرى'])}
+    ${inputField('رقم الرخصة', 'number', l.number)}
+    ${inputField('تاريخ الإصدار', 'issueDate', l.issueDate, 'date')}
+    ${inputField('تاريخ الانتهاء', 'expiryDate', l.expiryDate, 'date')}
+    <div class="form-group full"><label>المرفق (صورة أو PDF — أقل من 1.5MB)</label>
+      <input type="file" name="file" accept="image/*,.pdf">
+      ${l.file ? `<div class="file-preview">📎 ${esc(l.file.name)}</div>` : ''}
+    </div>
+    ${textareaField('ملاحظات', 'notes', l.notes, 2, true)}
+  </div>`, (data, files) => {
+    const item = {
+      id: existing ? existing.id : uid(),
+      type: data.type, number: data.number,
+      issueDate: data.issueDate, expiryDate: data.expiryDate, notes: data.notes,
+      file: files.file || (existing ? existing.file : null)
+    };
+    currentCar.licenses = existing
+      ? currentCar.licenses.map(x => x.id === existing.id ? item : x)
+      : [...(currentCar.licenses || []), item];
+    updateCar(currentCar); renderTab(); toast('تم الحفظ');
+  });
+}
+
+/* ---- Insurance Tab ---- */
+function renderInsuranceTab() {
+  const i = currentCar.insurance || {};
+  return `<div class="section">
+    <div class="section-header"><h2>بيانات التأمين</h2><button class="btn btn-primary" onclick="openInsuranceModal()">✏️ تعديل</button></div>
+    <div class="grid-2">
+      ${field('شركة التأمين', esc(i.company))}
+      ${field('رقم البوليصة', esc(i.policyNumber), true)}
+      ${field('نوع التأمين', esc(i.type))}
+      ${field('القسط', formatCurrency(i.premium))}
+      ${field('تاريخ البداية', formatDate(i.startDate))}
+      ${field('تاريخ الانتهاء', formatDate(i.endDate))}
+    </div>
+  </div>`;
+}
+
+function openInsuranceModal() {
+  const i = currentCar.insurance || {};
+  openModal('تعديل بيانات التأمين', `<div class="form-grid">
+    ${inputField('شركة التأمين', 'company', i.company)}
+    ${inputField('رقم البوليصة', 'policyNumber', i.policyNumber)}
+    ${selectField('نوع التأمين', 'type', i.type, ['', 'تأمين إجباري', 'تأمين شامل', 'تأمين ضد الغير'])}
+    ${inputField('القسط', 'premium', i.premium, 'number')}
+    ${inputField('تاريخ البداية', 'startDate', i.startDate, 'date')}
+    ${inputField('تاريخ الانتهاء', 'endDate', i.endDate, 'date')}
+    ${textareaField('ملاحظات', 'notes', i.notes, 2, true)}
+  </div>`, (data) => {
+    currentCar.insurance = { ...data, premium: Number(data.premium) || 0 };
+    updateCar(currentCar); renderTab(); toast('تم الحفظ');
+  });
+}
+
+/* ---- Maintenance Tab ---- */
+function renderMaintenanceTab() {
+  const list = currentCar.maintenance || [];
+  return `<div class="section">
+    <div class="section-header"><h2>سجل الصيانة (${list.length})</h2><button class="btn btn-primary" onclick="openMaintenanceModal()">➕ إضافة صيانة</button></div>
+    ${list.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>التاريخ</th><th>الوصف</th><th>الورشة</th><th>العداد</th><th>التكلفة</th><th>إجراءات</th></tr></thead>
+      <tbody>${list.map(m => `<tr>
+        <td>${formatDate(m.date)}</td>
+        <td>${esc(m.description)}</td>
+        <td>${esc(m.shop)}</td>
+        <td>${m.odometer || '—'}</td>
+        <td>${formatCurrency(m.cost)}</td>
+        <td class="actions">
+          <button class="btn-icon" onclick="openMaintenanceModal('${m.id}')">✏️</button>
+          <button class="btn-icon danger" onclick="deleteItem('maintenance','${m.id}')">🗑️</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : '<div class="empty-state">لا توجد سجلات صيانة</div>'}
+  </div>`;
+}
+
+function openMaintenanceModal(id) {
+  const existing = id ? currentCar.maintenance.find(m => m.id === id) : null;
+  const m = existing || { date: '', description: '', cost: '', shop: '', odometer: '', notes: '' };
+  openModal(existing ? 'تعديل صيانة' : 'إضافة صيانة', `<div class="form-grid">
+    ${inputField('التاريخ', 'date', m.date, 'date')}
+    ${inputField('الوصف', 'description', m.description)}
+    ${inputField('الورشة', 'shop', m.shop)}
+    ${inputField('قراءة العداد', 'odometer', m.odometer, 'number')}
+    ${inputField('التكلفة', 'cost', m.cost, 'number')}
+    ${textareaField('ملاحظات', 'notes', m.notes, 2, true)}
+  </div>`, (data) => {
+    const item = { id: existing ? existing.id : uid(), ...data, cost: Number(data.cost) || 0, odometer: Number(data.odometer) || 0 };
+    currentCar.maintenance = existing
+      ? currentCar.maintenance.map(x => x.id === existing.id ? item : x)
+      : [...(currentCar.maintenance || []), item];
+    updateCar(currentCar); renderTab(); toast('تم الحفظ');
+  });
+}
+
+/* ---- Expenses Tab ---- */
+function renderExpensesTab() {
+  const list = currentCar.expenses || [];
+  const total = list.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  return `<div class="section">
+    <div class="section-header"><h2>المصاريف (${list.length}) — الإجمالي: ${formatCurrency(total)}</h2><button class="btn btn-primary" onclick="openExpenseModal()">➕ إضافة مصروف</button></div>
+    ${list.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>التاريخ</th><th>الفئة</th><th>الوصف</th><th>المبلغ</th><th>إجراءات</th></tr></thead>
+      <tbody>${list.map(e => `<tr>
+        <td>${formatDate(e.date)}</td>
+        <td>${esc(e.category)}</td>
+        <td>${esc(e.description)}</td>
+        <td><strong>${formatCurrency(e.amount)}</strong></td>
+        <td class="actions">
+          <button class="btn-icon" onclick="openExpenseModal('${e.id}')">✏️</button>
+          <button class="btn-icon danger" onclick="deleteItem('expenses','${e.id}')">🗑️</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : '<div class="empty-state">لا توجد مصاريف مسجلة</div>'}
+  </div>`;
+}
+
+function openExpenseModal(id) {
+  const existing = id ? currentCar.expenses.find(e => e.id === id) : null;
+  const e = existing || { date: '', category: 'رسوم', description: '', amount: '' };
+  openModal(existing ? 'تعديل مصروف' : 'إضافة مصروف', `<div class="form-grid">
+    ${inputField('التاريخ', 'date', e.date, 'date')}
+    ${selectField('الفئة', 'category', e.category, ['رسوم', 'صيانة', 'قطع غيار', 'تأمين', 'بنزين', 'أخرى'])}
+    ${inputField('الوصف', 'description', e.description)}
+    ${inputField('المبلغ', 'amount', e.amount, 'number')}
+  </div>`, (data) => {
+    const item = { id: existing ? existing.id : uid(), ...data, amount: Number(data.amount) || 0 };
+    currentCar.expenses = existing
+      ? currentCar.expenses.map(x => x.id === existing.id ? item : x)
+      : [...(currentCar.expenses || []), item];
+    updateCar(currentCar); renderTab(); toast('تم الحفظ');
+  });
+}
+
+/* ---- Documents Tab ---- */
+function renderDocumentsTab() {
+  const list = currentCar.documents || [];
+  return `<div class="section">
+    <div class="section-header"><h2>المستندات (${list.length})</h2><button class="btn btn-primary" onclick="openDocumentModal()">➕ إضافة مستند</button></div>
+    ${list.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>الاسم</th><th>النوع</th><th>التاريخ</th><th>المرفق</th><th>إجراءات</th></tr></thead>
+      <tbody>${list.map(d => `<tr>
+        <td>${esc(d.name)}</td>
+        <td>${esc(d.type)}</td>
+        <td>${formatDate(d.date)}</td>
+        <td>${d.file ? `<a class="link" onclick="previewFile('documents','${d.id}')">📎 عرض</a>` : '—'}</td>
+        <td class="actions">
+          <button class="btn-icon" onclick="openDocumentModal('${d.id}')">✏️</button>
+          <button class="btn-icon danger" onclick="deleteItem('documents','${d.id}')">🗑️</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : '<div class="empty-state">لا توجد مستندات</div>'}
+  </div>`;
+}
+
+function openDocumentModal(id) {
+  const existing = id ? currentCar.documents.find(d => d.id === id) : null;
+  const d = existing || { name: '', type: 'رخصة', date: '', file: null };
+  openModal(existing ? 'تعديل مستند' : 'إضافة مستند', `<div class="form-grid">
+    ${inputField('اسم المستند', 'name', d.name)}
+    ${selectField('النوع', 'type', d.type, ['رخصة', 'تأمين', 'فاتورة', 'عقد', 'جمرك', 'أخرى'])}
+    ${inputField('التاريخ', 'date', d.date, 'date')}
+    <div class="form-group full"><label>الملف (صورة أو PDF — أقل من 1.5MB)</label>
+      <input type="file" name="file" accept="image/*,.pdf">
+      ${d.file ? `<div class="file-preview">📎 ${esc(d.file.name)}</div>` : ''}
+    </div>
+  </div>`, (data, files) => {
+    const item = {
+      id: existing ? existing.id : uid(),
+      name: data.name, type: data.type, date: data.date,
+      file: files.file || (existing ? existing.file : null)
+    };
+    currentCar.documents = existing
+      ? currentCar.documents.map(x => x.id === existing.id ? item : x)
+      : [...(currentCar.documents || []), item];
+    updateCar(currentCar); renderTab(); toast('تم الحفظ');
+  });
+}
+
+/* ---- Photos Tab ---- */
+function renderPhotosTab() {
+  const list = currentCar.photos || [];
+  return `<div class="section">
+    <div class="section-header"><h2>الصور (${list.length})</h2><button class="btn btn-primary" onclick="openPhotoModal()">➕ إضافة صور</button></div>
+    ${list.length ? `<div class="photos-grid">${list.map(p => `
+      <div class="photo-item" onclick="viewPhoto('${p.id}')">
+        <img src="${p.data}" alt="${esc(p.name)}">
+        <button class="del" onclick="event.stopPropagation();deletePhoto('${p.id}')">✕</button>
+      </div>`).join('')}</div>` : '<div class="empty-state">لا توجد صور مرفوعة</div>'}
+  </div>`;
+}
+
+function openPhotoModal() {
+  openModal('إضافة صور', `<div class="form-grid">
+    <div class="form-group full"><label>اختر صورة (بحد أقصى 1.5MB لكل صورة)</label>
+      <input type="file" name="photo" accept="image/*">
+    </div>
+  </div>`, async (data, files) => {
+    if (!files.photo) throw new Error('اختر صورة أولاً');
+    const item = { id: uid(), name: files.photo.name, data: files.photo.data };
+    currentCar.photos = [...(currentCar.photos || []), item];
+    updateCar(currentCar); renderTab(); toast('تمت إضافة الصورة');
+  });
+}
+
+function viewPhoto(id) {
+  const p = (currentCar.photos || []).find(x => x.id === id);
+  if (!p) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-overlay';
+  wrap.innerHTML = `<div class="modal" style="max-width:900px;"><div class="modal-header"><h3>${esc(p.name)}</h3><button class="modal-close">✕</button></div><div class="modal-body" style="padding:0;"><img src="${p.data}" style="width:100%;display:block;"></div></div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelector('.modal-close').onclick = () => wrap.remove();
+  wrap.addEventListener('click', e => { if (e.target === wrap) wrap.remove(); });
+}
+
+function deletePhoto(id) {
+  if (!confirm('حذف هذه الصورة؟')) return;
+  currentCar.photos = (currentCar.photos || []).filter(p => p.id !== id);
+  updateCar(currentCar); renderTab(); toast('تم الحذف');
+}
+
+/* ---- Notes Tab ---- */
+function renderNotesTab() {
+  return `<div class="section">
+    <div class="section-header"><h2>ملاحظات عامة</h2><button class="btn btn-primary" onclick="saveNotes()">💾 حفظ</button></div>
+    <div class="form-group"><textarea id="notesArea" rows="10" style="min-height:250px;">${esc(currentCar.notes || '')}</textarea></div>
+  </div>`;
+}
+
+function saveNotes() {
+  currentCar.notes = $('#notesArea').value;
+  updateCar(currentCar); toast('تم حفظ الملاحظات');
+}
+
+/* ---- Shared item deletion ---- */
+function deleteItem(listName, id) {
+  if (!confirm('تأكيد الحذف؟')) return;
+  currentCar[listName] = (currentCar[listName] || []).filter(x => x.id !== id);
+  updateCar(currentCar); renderTab(); toast('تم الحذف');
+}
+
+/* ---- File preview (base64 → blob) ---- */
+function previewFile(listName, id) {
+  const item = (currentCar[listName] || []).find(x => x.id === id);
+  if (!item?.file?.data) return alert('لا يوجد مرفق');
+  try {
+    const [meta, b64] = item.file.data.split(',');
+    const mime = meta.split(':')[1].split(';')[0];
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([arr], { type: mime }));
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch { alert('لا يمكن عرض الملف'); }
+}
+
+/* ============================================================
+   BOOT
+============================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  if (!location.hash) location.hash = '#/';
+  router();
+  document.getElementById('navHome').classList.toggle('active', location.hash === '#/' || location.hash === '');
+});
+</script>
+
+</body>
+</html>
